@@ -1,0 +1,47 @@
+site_name: DB Performance Monitoring Suite
+site_description: A comprehensive toolkit for monitoring PostgreSQL and MySQL database performance
+site_author: Amit Tiwari
+repo_url: https://github.com/amit-t/db-performance
+repo_name: amit-t/db-performance
+
+theme:
+  name: material
+  palette:
+    primary: blue
+    accent: indigo
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Home: 'index.md'
+  - Getting Started: 'getting-started.md'
+  - Scripts:
+    - 'PostgreSQL Health Check': 'scripts/postgres-health-check.md'
+    - 'MySQL Health Check': 'scripts/mysql-health-check.md'
+  - Features:
+    - 'PostgreSQL Features': 'features/postgres-features.md'
+    - 'MySQL Features': 'features/mysql-features.md'
+  - Usage Guide:
+    - 'Installation': 'usage/installation.md'
+    - 'Running Scripts': 'usage/running-scripts.md'
+    - 'Interpreting Results': 'usage/interpreting-results.md'
+  - About:
+    - 'Contributing': 'about/contributing.md'
+    - 'License': 'about/license.md'
