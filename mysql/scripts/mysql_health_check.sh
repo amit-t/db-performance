@@ -168,13 +168,15 @@ SQL13="SELECT * FROM sys.io_global_by_file_by_bytes ORDER BY total DESC LIMIT 10
 SQL14="SELECT * FROM sys.io_global_by_wait_by_bytes LIMIT 10;"
 
 # Top UPDATE/DELETE operations by table
+# Replaced sum_timer_insert + sum_timer_update + sum_timer_delete with insert_latency + update_latency  + delete_latency
 SQL15="SELECT * FROM sys.schema_table_statistics 
-       ORDER BY (sum_timer_insert + sum_timer_update + sum_timer_delete) DESC 
+       ORDER BY (insert_latency + update_latency  + delete_latency) DESC 
        LIMIT 10;"
 
 # InnoDB buffer pool hit ratio
+# Changed alias from reads to reads_
 SQL16="SELECT 
-       (SELECT variable_value FROM performance_schema.global_status WHERE variable_name='Innodb_buffer_pool_reads') AS reads,
+       (SELECT variable_value FROM performance_schema.global_status WHERE variable_name='Innodb_buffer_pool_reads') AS reads_,
        (SELECT variable_value FROM performance_schema.global_status WHERE variable_name='Innodb_buffer_pool_read_requests') AS requests,
        IF((SELECT variable_value FROM performance_schema.global_status WHERE variable_name='Innodb_buffer_pool_read_requests') > 0,
           ROUND(100 - ((SELECT variable_value FROM performance_schema.global_status WHERE variable_name='Innodb_buffer_pool_reads') / 
@@ -213,7 +215,8 @@ SQL25="SHOW GLOBAL STATUS LIKE 'Qcache%';"
 SQL26="SHOW GLOBAL VARIABLES LIKE 'query_cache%';"
 
 # Lock Contention and Waits
-SQL27="SELECT count AS waiting_transactions, wait_age_secs, locked_table, locked_type, waiting_query 
+# Changed count to count(*), do we need group by?
+SQL27="SELECT count(*) AS waiting_transactions, wait_age_secs, locked_table, locked_type, waiting_query 
 FROM sys.innodb_lock_waits 
 ORDER BY wait_age_secs DESC;"
 SQL28="SHOW ENGINE INNODB STATUS\G"
@@ -258,8 +261,9 @@ SQL34="SHOW GLOBAL VARIABLES WHERE Variable_name IN (
 # --- HTML Report Generation ---
 
 # Section: Database Sizes
+# Fixed query execution
 echo "<font face=\"verdana\" color=\"#ff6600\">Total Size of All Databases:</font> " >>$html
-echo "$($MYSQLCMD -e \"$SQL3\")" >>$html
+$MYSQLCL -H -e "$SQL3" >>$html
 echo "<br>" >> $html
 echo "<br>" >> $html
 
@@ -472,13 +476,18 @@ if [[ "$QC_SIZE" != "0" ]]; then
   QC_HITS=$($MYSQLCMD -e "SHOW GLOBAL STATUS LIKE 'Qcache_hits'" | awk '{print $2}')
   QC_INSERTS=$($MYSQLCMD -e "SHOW GLOBAL STATUS LIKE 'Qcache_inserts'" | awk '{print $2}')
   
-  if [[ "$QC_HITS" != "0" && "$QC_INSERTS" != "0" ]]; then
-    HIT_RATIO=$((QC_HITS*100/(QC_HITS+QC_INSERTS)))
-    echo "<font face=\"verdana\" color=\"#0099cc\">Query Cache Hit Ratio: $HIT_RATIO%</font>" >> $html
+  # Check if these variables are integers
+  if [[ "$QC_HITS" =~ ^[0-9]+$ ]] && [[ "$QC_INSERTS" =~ ^[0-9]+$ ]]; then
+    if [[ "$QC_HITS" != "0" && "$QC_INSERTS" != "0" ]]; then
+      HIT_RATIO=$((QC_HITS*100/(QC_HITS+QC_INSERTS)))
+      echo "<font face=\"verdana\" color=\"#0099cc\">Query Cache Hit Ratio: $HIT_RATIO%</font>" >> $html
     
-    if [[ $HIT_RATIO -lt 20 ]]; then
-      echo "<font face=\"verdana\" color=\"#ff0000\">Warning: Low query cache hit ratio. Consider disabling query cache or tuning its size.</font>" >> $html
+      if [[ $HIT_RATIO -lt 20 ]]; then
+        echo "<font face=\"verdana\" color=\"#ff0000\">Warning: Low query cache hit ratio. Consider disabling query cache or tuning its size.</font>" >> $html
+      fi
     fi
+  else
+    echo "<font face=\"verdana\" color=\"#ff0000\">Error: Qcache_hits or Qcache_inserts is not an integer.</font>" >> "$html"
   fi
   
   echo "<br>" >> $html
